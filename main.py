@@ -60,9 +60,6 @@ def main():
     args = parser.parse_args()
     args.steps = args.n_steps
 
-    # args.ques_num = 2164
-    # env = BatchIEKTjunyiSimulator(args)
-
     # if args.env == 'IEKT_junyi':
     #     args.ques_num = 2163
     #     env = BatchIEKTjunyiSimulator(args)
