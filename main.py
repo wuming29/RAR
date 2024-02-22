@@ -25,7 +25,7 @@ def setup_seed(seed):
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--env", default='DKT_assist09', type=str, help="IEKT_junyi, IEKT_assist09, DKT_junyi, DKT_assist09 or KSS")
+    parser.add_argument("--env", default='KSS', type=str, help="IEKT_junyi, IEKT_assist09, DKT_junyi, DKT_assist09 or KSS")
     # agent
     parser.add_argument("--batch_size", default=256, type=int)
     parser.add_argument("--emb_dim", default=48, type=int, help="embedding dimension of model")
