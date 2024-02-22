@@ -1,6 +1,6 @@
 import random
 
-from ORImodel import ORImodel
+from RARmodel import RARmodel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,17 +8,17 @@ from torch.nn.utils import clip_grad_norm_
 import pickle
 from tqdm import trange
 
-class ORIAgent:
+class RARAgent:
     def __init__(self, args):
-        self.name = 'ORIAgent'
+        self.name = 'RARAgent'
         self.env = '_'
         self.batch_size = args.batch_size
-        self.device = args.ORI_device
+        self.device = args.RAR_device
         self.ques_num = args.ques_num
         self.n_steps = args.n_steps
         policy_mlp_hidden_dim_list = [args.hidden_dim*2, args.policy_mlp_hidden1, args.policy_mlp_hidden2, args.ques_num]
         kt_mlp_hidden_dim_list = [args.hidden_dim*2, args.kt_mlp_hidden1, args.kt_mlp_hidden2, 1]
-        self.model = ORImodel(args.batch_size, args.ques_num, args.emb_dim, args.hidden_dim, args.weigh_dim,
+        self.model = RARmodel(args.batch_size, args.ques_num, args.emb_dim, args.hidden_dim, args.weigh_dim,
                               args.target_num,
                               policy_mlp_hidden_dim_list, kt_mlp_hidden_dim_list, args.use_kt, 1,
                               args.n_head, args.n_layers, args.n_ques, self.device)

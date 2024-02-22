@@ -9,11 +9,11 @@ from collections import OrderedDict
 import copy
 
 
-class ORImodel(nn.Module):
+class RARmodel(nn.Module):
     def __init__(self, batch_size, ques_num, emb_dim, hidden_dim, weigh_dim, target_num,
                  policy_mlp_hidden_dim_list, kt_mlp_hidden_dim_list, use_kt, n_steps, n_head, n_layers, n_ques,
                  device, m=200, rank_num=10):
-        super(ORImodel, self).__init__()
+        super(RARmodel, self).__init__()
 
         self.batch_size = batch_size
         self.ques_num = ques_num
