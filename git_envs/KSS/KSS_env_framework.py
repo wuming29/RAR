@@ -113,7 +113,7 @@ class KSSFramework:
         plt.plot(episode_list, epoch_reward_list)
         plt.xlabel('Epoch')
         plt.ylabel('Average Return')
-        plt.savefig('experiment_record/plot/{} on KSS.png'.format(self.agent.name))
+        # plt.savefig('experiment_record/plot/{} on KSS.png'.format(self.agent.name))
 
         with open('experiment_record/train_record/KSS/{}.pkl'.format(self.agent.name), 'wb') as f:
             pickle.dump(epoch_reward_list, f)
@@ -451,7 +451,7 @@ class BatchKSSFramework:
         plt.plot(episode_list, epoch_reward_list)
         plt.xlabel('Epoch')
         plt.ylabel('Average Return')
-        plt.savefig('experiment_record/plot/{} on KSS.png'.format(self.agent.name))
+        # plt.savefig('experiment_record/plot/{} on KSS.png'.format(self.agent.name))
 
         with open('experiment_record/train_record/KSS/{}.pkl'.format(self.agent.name), 'wb') as f:
             pickle.dump(epoch_reward_list, f)
