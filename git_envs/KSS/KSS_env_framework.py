@@ -445,7 +445,7 @@ class BatchKSSFramework:
                     arg_dict = {key: val._reduce() for key, val in params.items()}
                     ndarray.save('save_model/KSS/{}.parmas'.format(self.agent.name), arg_dict)
                 else:
-                    torch.save(self.agent, 'experiment_record/trained_agent_model/KSS/{}.pt'.format(self.agent.name))
+                    torch.save(self.agent, 'save_model/KSS/{}.pt'.format(self.agent.name))
 
         episode_list = [i+1 for i in range(self.epoch_num)]
         plt.plot(episode_list, epoch_reward_list)
