@@ -1,3 +1,6 @@
-We have published our RAR-related code and the code of one of the simulation environments, KSS, as examples to help you better understand our work.
-
-Running main.py can verify the effect of our method.
+# Personalized Education with Ranking Alignment Recommendation
+Thanks for your interest! This repository is the implementation of IEKT, which is proposed in the paper "Personalized Education with Ranking Alignment Recommendation".
+# Run
+```
+python main.py --run_dir runs/RUN_DIR
+```
