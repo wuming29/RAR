@@ -1,5 +1,3 @@
-import random
-
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
@@ -12,7 +10,7 @@ import copy
 class RARmodel(nn.Module):
     def __init__(self, batch_size, ques_num, emb_dim, hidden_dim, weigh_dim, target_num,
                  policy_mlp_hidden_dim_list, kt_mlp_hidden_dim_list, use_kt, n_steps, n_head, n_layers, n_ques,
-                 device, m=200, rank_num=10):
+                 device, m=10, rank_num=10):
         super(RARmodel, self).__init__()
 
         self.batch_size = batch_size
@@ -42,10 +40,7 @@ class RARmodel(nn.Module):
 
         self.ques_correct_to_hidden = nn.Linear(emb_dim+1, hidden_dim).to(device)
         self.init_state_encoder = nn.LSTM(hidden_dim, hidden_dim * 2, batch_first=True).to(device)
-        # 推荐过程中跟踪学生状态的LSTM
         self.state_encoder = nn.LSTM(hidden_dim * 2, hidden_dim * 2, batch_first=True).to(device)
-        # 序列建模模型
-        self.seq_encoder = nn.LSTM(ques_num, hidden_dim).to(device)
 
         self.W1 = nn.Linear(hidden_dim*2, weigh_dim*2, bias=False).to(device)
         self.W2 = nn.Linear(hidden_dim*2, weigh_dim*2, bias=False).to(device)
@@ -70,18 +65,15 @@ class RARmodel(nn.Module):
         self.batch_state = None
         self.state_encoder_inputs = None
 
-        # 长为batch_size的向量
         self.last_ques = None
         self.last_n_ques = None
 
-        # 长度为step_num的列表
         self.action_prob_list = []
         self.kt_prob_list = []
         self.action_list = []
 
         self.device = device
 
-        # 额外补充
         self.target = None
         self.target_num = target_num
         self.batch_target_num = None
@@ -123,7 +115,6 @@ class RARmodel(nn.Module):
         self.target_table = torch.zeros(self.batch_size, self.ques_num).to(self.device)
         self.ranking_loss = 0
 
-        # 一、获取ques表征
         self.raw_ques_embedding = self.ques_embedding(torch.arange(self.ques_num).to(self.device))
         ques_embedding = self.emb_to_hidden(self.raw_ques_embedding)
 
@@ -131,10 +122,9 @@ class RARmodel(nn.Module):
 
         self.ques_representation = torch.cat([ques_att_embedding, ques_embedding], dim=1)
 
-        # 二、获取目标表示
         targets_embedding_list = []
-        self.batch_target_num = torch.zeros(self.batch_size).to(self.device)  # batch_size长度向量，记录各学生的学习目标数
-        for i in range(len(targets)):  # targets长度不同时，统一成target_num长度，补充元素的值为target_num
+        self.batch_target_num = torch.zeros(self.batch_size).to(self.device)
+        for i in range(len(targets)):
             target = targets[i]
 
             for ques_id in target:
@@ -147,21 +137,12 @@ class RARmodel(nn.Module):
             self.batch_target_num[i] = len(targets[i])
             targets[i] = list(targets[i]) + [self.target_num for _ in range(self.target_num - len(targets[i]))]
 
-        self.target = torch.tensor(targets, requires_grad=False).to(self.device)  # batch_size * target_num矩
-        self.batch_target_emb = torch.stack(targets_embedding_list).to(self.device)  # batch_size * (hidden_dim*2)
+        self.target = torch.tensor(targets, requires_grad=False).to(self.device)
+        self.batch_target_emb = torch.stack(targets_embedding_list).to(self.device)
 
         ques_representation = torch.cat(
             [self.ques_representation, torch.zeros(1, self.hidden_dim * 2).to(self.device)], dim=0)
-        self.batch_T_rep = ques_representation[self.target]  # batch_size * target_num * (hidden_dim*2)矩
-
-        # targets_embedding_list = []
-        # for target in targets:
-        #     targets_embedding = self.ques_representation[torch.tensor(list(target)).to(self.device)]
-        #
-        #     mean_targets_embedding = torch.mean(targets_embedding, dim=0)
-        #     targets_embedding_list.append(mean_targets_embedding)
-        #
-        # self.batch_target_emb = torch.stack(targets_embedding_list).to(self.device)  # batch_size * (hidden_dim*2)
+        self.batch_T_rep = ques_representation[self.target]
 
         batch_init_h = []
         batch_init_c = []
@@ -204,12 +185,8 @@ class RARmodel(nn.Module):
         self.batch_state, self.hc = self.state_encoder(self.state_encoder_inputs, self.hc)
 
     def take_action(self):
-
         ques_representation = self.ques_representation + torch.mean(self.ques_representation, dim=0)
-        # ques_representation: batch_size * (hidden_dim * 2)
         batch_last_ques_representation = ques_representation[self.last_n_ques].mean(dim=1)
-        #
-        # batch_target_emb = self.batch_target_emb
 
         batch_state = self.batch_state.squeeze()
 
@@ -227,6 +204,8 @@ class RARmodel(nn.Module):
 
     def step_refresh(self, ques_id, observation):
         ques_id = torch.tensor(ques_id, device=self.device)
+
+        self.action_list.append(ques_id)
 
         self.last_ques = ques_id
         try:
@@ -261,21 +240,17 @@ class RARmodel(nn.Module):
 
         return prob
 
-    def get_ranking_loss(self, seq):  # seq: step_num * batch_size * ques_dim
-        seq_rep, _ = self.seq_encoder(seq)  # step_num * batch_size * hidden_dim
-        seq_rep = seq_rep[-1]  # 只取最后一步的最终结果  batch_size * hidden_dim
+    def get_ranking_loss(self, seq):
+        seq_rep = seq.sum(0)
 
         for i in range(self.batch_size):
             index = torch.randint(0, self.batch_size, (self.rank_num,))
 
-            # 学习目标间的差距
-            target_dist = (self.target_table[i] - self.target_table[index]).abs().sum(1)  # rank_num长度向量
+            target_dist = (self.target_table[i] - self.target_table[index]).abs().sum(1)
 
-            # 路径表示上的差距
-            pdist = nn.PairwiseDistance(p=2)
-            seq_dist = pdist(seq_rep[i], seq_rep[index])  # rank_num长度向量
+            pdist = nn.PairwiseDistance(p=1)
+            seq_dist = pdist(seq_rep[i], seq_rep[index])
 
-            # 计算loss
             m_tensor = torch.full((self.rank_num,), self.m).to(self.device)
             ranking_loss = torch.clamp(m_tensor * target_dist - seq_dist, min=0, max=100000).mean()
 

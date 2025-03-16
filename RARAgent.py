@@ -1,12 +1,8 @@
-import random
-
 from RARmodel import RARmodel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
-import pickle
-from tqdm import trange
 
 class RARAgent:
     def __init__(self, args):
@@ -21,15 +17,13 @@ class RARAgent:
         self.model = RARmodel(args.batch_size, args.ques_num, args.emb_dim, args.hidden_dim, args.weigh_dim,
                               args.target_num,
                               policy_mlp_hidden_dim_list, kt_mlp_hidden_dim_list, args.use_kt, 1,
-                              args.n_head, args.n_layers, args.n_ques, self.device)
+                              args.n_head, args.n_layers, args.n_ques, self.device, m=args.psi)
         self.policy_optimizer = torch.optim.Adam(self.model.parameters(), lr=5e-4)
         self.policy_optimizer_refresh = args.police_optimizer_refresh
 
         self.use_kt = args.use_kt
         self.alpha = args.alpha
         self.beta = args.beta
-
-        print(self.beta)
 
         self.action_list = []
         self.action_prob_list = []
@@ -94,7 +88,6 @@ class RARAgent:
         ranking_loss = self.model.get_ranking_loss(torch.stack(self.action_prob_list, dim=0))
 
         loss = policy_loss + self.alpha*kt_loss + self.beta*ranking_loss
-        # loss = policy_loss + self.alpha * kt_loss
 
         self.policy_optimizer.zero_grad()
         loss.backward()
